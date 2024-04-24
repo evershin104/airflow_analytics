@@ -41,6 +41,4 @@ COPY --chown=backend:backend ./app/main.py ./app/main.py
 # Future alembic migrations
 # CMD bash scripts/entry
 
-# EXPOSE 8003
-# TODO
-CMD ["uvicorn", "app.main:app", "--port", "8003"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

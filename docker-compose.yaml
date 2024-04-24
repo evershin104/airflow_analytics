@@ -87,6 +87,11 @@ x-airflow-common:
     postgres-data:
       condition: service_healthy
 
+x-system-defaults: &system-default
+  networks:
+    - backend-network
+  restart: unless-stopped
+
 services:
   postgres-sys:
     image: postgres:13
@@ -304,23 +309,36 @@ services:
         condition: service_completed_successfully
         
   app:
+    hostname: app
+    image: airflow_analytics-app:latest
     # environment:
     build:
       context: .
       args:
         INSTALL_DEPENDENCIES: dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     depends_on:
       redis:
         condition: service_started
       postgres-data:
         condition: service_healthy
-
     ports:
-      - "8003:8003"
+      - "8000:8000"
+    # healthcheck:
+      # test: ["CMD", "curl", "--fail", "http://localhost:8003/"]
+      # interval: 30s
+      # timeout: 10s
+      # retries: 5
+      # start_period: 30s
+    restart: always
     env_file:
       - .env
     volumes:
       - .:/app:cached
+
+networks:
+  backend-network:
+    name: backend-network
 
 volumes:
   postgres-db-sys-volume:
