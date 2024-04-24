@@ -304,6 +304,7 @@ services:
         condition: service_completed_successfully
         
   app:
+    # environment:
     build:
       context: .
       args:
@@ -311,11 +312,11 @@ services:
     depends_on:
       redis:
         condition: service_started
-      db:
+      postgres-data:
         condition: service_healthy
 
     ports:
-      - "8000:8000"
+      - "8003:8003"
     env_file:
       - .env
     volumes:

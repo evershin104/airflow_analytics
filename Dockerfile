@@ -1,56 +1,46 @@
-#syntax=docker/dockerfile:1.4
+FROM python:3.8.13-slim-bullseye
 
-ARG INSTALL_DEPENDENCIES=prod
+ENV PYTHONUNBUFFERED=1
+ARG ENV=develop
+ARG POETRY_VER=1.8.2
 
-FROM python:3.11-slim AS base
+WORKDIR /usr/lib/app
 
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends curl git build-essential python3-setuptools \
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/apt/lists/* \
-    && rm -rf /var/cache/apt/*
+COPY pyproject.toml poetry.lock ./
 
+RUN set -eux && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        build-essential \
+        libpq-dev \
+        curl \
+        gosu && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip3 install --no-cache-dir --disable-pip-version-check --no-compile --upgrade pip poetry==${POETRY_VER} && \
+    poetry config virtualenvs.create false && \
+    if [ "${ENV}" = "develop" ]; then \
+        poetry install; \
+    else \
+        poetry install --only main; \
+    fi; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false build-essential && \
+    rm -rf /var/lib/apt/lists/* && \
+    find /usr/local/lib | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf && \
+    find /var/log -type f | xargs rm -rf && \
+    rm -r ~/.cache \
+        pyproject.toml \
+        poetry.lock && \
+    groupadd -r backend --gid=990 && \
+    useradd -r -g backend --uid=990 --home-dir=/usr/lib/backend --shell=/bin/bash backend && \
+    mkdir -p /usr/lib/app/logs && \
+    chown backend:backend /usr/lib/app /usr/lib/app/logs
 
-ENV POETRY_HOME="/opt/poetry"
-ENV PATH="$POETRY_HOME/bin:$PATH" \
-    POETRY_VERSION=1.6.1
-RUN curl -sSL https://install.python-poetry.org | python3 - \
-    && poetry config virtualenvs.create false \
-    && mkdir -p /cache/poetry \
-    && poetry config cache-dir /cache/poetry
+COPY --chown=backend:backend ./app/main.py ./app/main.py
 
-FROM base AS base-prod
-# ХУЕТА
-COPY . /app
-WORKDIR /app
-COPY ./pyproject.toml ./poetry.lock ./
+# Future alembic migrations
+# CMD bash scripts/entry
 
-# install only production dependencies
-RUN --mount=type=cache,target=/cache/poetry \
-    poetry install --no-root --only main
-
-
-FROM base-prod AS base-dev
-
-# install the rest of the dependencies
-RUN --mount=type=cache,target=/cache/poetry \
-    poetry install --no-root
-
-# hadolint ignore=DL3006
-FROM base-${INSTALL_DEPENDENCIES} AS final
-
-# copy all the application code and install our project
-
-COPY . ./
-
-RUN poetry install --only-root
-
-# create a non-root user and switch to it, for security.
-RUN addgroup --system --gid 1001 "app-user"
-RUN adduser --system --uid 1001 "app-user"
-USER "app-user"
-
-ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["./scripts/entry"]
+# EXPOSE 8003
+# TODO
+CMD ["uvicorn", "app.main:app", "--port", "8003"]
