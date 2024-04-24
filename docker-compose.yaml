@@ -54,8 +54,8 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-sys/airflow
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres-sys/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${SYS_POSTGRES_USER:-airflow}:${SYS_POSTGRES_PASSWORD:-airflow}@postgres-sys/${SYS_POSTGRES_DATABASE:-airflow}
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${SYS_POSTGRES_USER:-airflow}:${SYS_POSTGRES_PASSWORD:-airflow}@postgres-sys/${SYS_POSTGRES_DATABASE:-airflow}
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
@@ -96,35 +96,35 @@ services:
   postgres-sys:
     image: postgres:13
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: "${SYS_POSTGRES_USER:-airflow}"
+      POSTGRES_PASSWORD: "${SYS_POSTGRES_PASSWORD:-airflow}"
+      POSTGRES_DB: "${SYS_POSTGRES_DATABASE:-airflow}"
     volumes:
       - postgres-db-sys-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "${SYS_POSTGRES_USER:-airflow}"]
       interval: 10s
       retries: 5
       start_period: 5s
     ports:
-      - "1243:5432"
+      - "${SYS_POSTGRES_PORT:-1243}:5432"
     restart: always
 
   postgres-data:
     image: postgres:13
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: "${DS_POSTGRES_USER:-airflow}"
+      POSTGRES_PASSWORD: "${DS_POSTGRES_PASSWORD:-airflow}"
+      POSTGRES_DB: "${DS_POSTGRES_DATABASE:-airflow}"
     volumes:
       - postgres-db-data-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "${DS_POSTGRES_USER:-airflow}"]
       interval: 10s
       retries: 5
       start_period: 5s
     ports:
-      - "1244:5432"
+      - "${DS_POSTGRES_PORT:-1244}:5432"
     restart: always
 
   redis:
@@ -266,8 +266,8 @@ services:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-admin}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-admin}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
@@ -311,12 +311,19 @@ services:
   app:
     hostname: app
     image: airflow_analytics-app:latest
-    # environment:
+    environment:
+      APP_HOST: "${APP_HOST:-0.0.0.0}"
+      APP_PORT: "${APP_PORT:-8000}"
+      APP_POSTGRES_HOST: "${APP_POSTGRES_HOST:-postgres-data:5432}"
+      APP_POSTGRES_DATABASE: "${DS_POSTGRES_DATABASE:-airflow}"
+      APP_POSTGRES_USER: "${APP_POSTGRES_USER:-airflow}"
+      APP_POSTGRES_PASSWORD: "${APP_POSTGRES_PASSWORD:-airflow}"
+      APP_REDIS_HOST: "${APP_REDIS_HOST:-redis:6379}"
     build:
       context: .
       args:
         INSTALL_DEPENDENCIES: dev
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: scripts/entry
     depends_on:
       redis:
         condition: service_started
@@ -324,21 +331,18 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
-    # healthcheck:
-      # test: ["CMD", "curl", "--fail", "http://localhost:8003/"]
-      # interval: 30s
-      # timeout: 10s
-      # retries: 5
-      # start_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8003/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
     restart: always
     env_file:
       - .env
     volumes:
       - .:/app:cached
 
-networks:
-  backend-network:
-    name: backend-network
 
 volumes:
   postgres-db-sys-volume:

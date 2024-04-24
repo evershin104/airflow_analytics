@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED=1
 ARG ENV=develop
 ARG POETRY_VER=1.8.2
 
-WORKDIR /usr/lib/app
+WORKDIR /usr/lib/backend
 
 COPY pyproject.toml poetry.lock ./
 
@@ -36,9 +36,8 @@ RUN set -eux && \
     mkdir -p /usr/lib/app/logs && \
     chown backend:backend /usr/lib/app /usr/lib/app/logs
 
-COPY --chown=backend:backend ./app/main.py ./app/main.py
-
-# Future alembic migrations
-# CMD bash scripts/entry
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY --chown=backend:backend ./app ./app
+COPY --chown=backend:backend ./scripts/entry ./scripts/entry
+# TODO
+RUN chmod +x scripts/entry
+CMD ["scripts/entry"]
