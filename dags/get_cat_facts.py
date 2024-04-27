@@ -28,8 +28,8 @@ def insert_into_db(**kwargs):
 
     cur = conn.cursor()
     cur.execute("""
-                INSERT INTO cat_facts (fact, length) VALUES (`{}`, {})
-                """.format(data['fact'], data['length'],))
+                INSERT INTO cat_facts (fact, length) VALUES ('{}', {})
+                """.format(data['fact'].replace("`", ""), data['length'],))
     conn.commit()
     cur.close()
     conn.close()
