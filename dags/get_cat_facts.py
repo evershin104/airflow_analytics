@@ -3,10 +3,15 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
 import requests
 import psycopg2
+import logging
+
+# TODO env 
+import os
 
 def get_api_data():
     response = requests.get('https://catfact.ninja/fact')
     data = response.json()
+    logging.info(data)
     return data
 
 def insert_into_db(**kwargs):
@@ -14,15 +19,17 @@ def insert_into_db(**kwargs):
     data = ti.xcom_pull(task_ids='get_api_data')
 
     conn = psycopg2.connect(
-        dbname="your_dbname",
-        user="your_username",
-        password="your_password",
-        host="your_host",
-        port="your_port"
+        dbname='airflow',
+        user='airflow',
+        password='airflow',
+        host='postgres-data'
+        # port=os.getenv('DS_POSTGRES_PORT')
     )
 
     cur = conn.cursor()
-    cur.execute("INSERT INTO your_table (fact) VALUES (%s)", (data['fact'],))
+    cur.execute("""
+                INSERT INTO cat_facts (fact, length) VALUES (`{}`, {})
+                """.format(data['fact'], data['length'],))
     conn.commit()
     cur.close()
     conn.close()

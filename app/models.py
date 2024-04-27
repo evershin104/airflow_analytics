@@ -1,29 +1,16 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 # Создаем базовый класс для моделей
 Base = declarative_base()
 
 # Определяем модель пользователя
-class User(Base):
-    __tablename__ = 'users'
+class CatFacts(Base):
+    __tablename__ = 'cat_facts'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    email = Column(String, unique=True)
+    fact = Column(Text)
+    length = Column(Integer)
 
     def __repr__(self):
         return f"<User(name='{self.name}', email='{self.email}')>"
-
-# Определяем модель продукта
-class Product(Base):
-    __tablename__ = 'products'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    price = Column(Integer)
-
-    def __repr__(self):
-        return f"<Product(name='{self.name}', price='{self.price}')>"
-
-# Другие модели могут быть определены здесь
