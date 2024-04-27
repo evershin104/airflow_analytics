@@ -38,6 +38,9 @@ RUN set -eux && \
 
 COPY --chown=backend:backend ./app ./app
 COPY --chown=backend:backend ./scripts/entry ./scripts/entry
+COPY --chown=backend:backend ./alembic ./alembic
+COPY --chown=backend:backend alembic.ini .
+
 # TODO
 RUN chmod +x scripts/entry
 CMD ["scripts/entry"]
