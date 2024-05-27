@@ -314,10 +314,11 @@ services:
     environment:
       APP_HOST: "${APP_HOST:-0.0.0.0}"
       APP_PORT: "${APP_PORT:-8000}"
-      APP_POSTGRES_HOST: "${APP_POSTGRES_HOST:-postgres-data:5432}"
+      APP_POSTGRES_HOST: "${DS_POSTGRES_HOST:-postgres-data}"
+      APP_POSTGRES_PORT: "${DS_POSTGRES_PORT:-5432}"
       APP_POSTGRES_DATABASE: "${DS_POSTGRES_DATABASE:-airflow}"
-      APP_POSTGRES_USER: "${APP_POSTGRES_USER:-airflow}"
-      APP_POSTGRES_PASSWORD: "${APP_POSTGRES_PASSWORD:-airflow}"
+      APP_POSTGRES_USER: "${DS_POSTGRES_USER:-airflow}"
+      APP_POSTGRES_PASSWORD: "${DS_POSTGRES_PASSWORD:-airflow}"
       APP_REDIS_HOST: "${APP_REDIS_HOST:-redis:6379}"
     build:
       context: .
