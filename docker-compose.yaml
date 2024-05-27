@@ -53,6 +53,7 @@ x-airflow-common:
   # build: .
   environment:
     &airflow-common-env
+    CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: 'true'
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${SYS_POSTGRES_USER:-airflow}:${SYS_POSTGRES_PASSWORD:-airflow}@postgres-sys/${SYS_POSTGRES_DATABASE:-airflow}
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${SYS_POSTGRES_USER:-airflow}:${SYS_POSTGRES_PASSWORD:-airflow}@postgres-sys/${SYS_POSTGRES_DATABASE:-airflow}
@@ -84,8 +85,6 @@ x-airflow-common:
       condition: service_healthy
     postgres-sys:
       condition: service_healthy
-    postgres-data:
-      condition: service_healthy
 
 x-system-defaults: &system-default
   networks:
@@ -108,23 +107,6 @@ services:
       start_period: 5s
     ports:
       - "${SYS_POSTGRES_PORT:-1243}:5432"
-    restart: always
-
-  postgres-data:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: "${DS_POSTGRES_USER:-airflow}"
-      POSTGRES_PASSWORD: "${DS_POSTGRES_PASSWORD:-airflow}"
-      POSTGRES_DB: "${DS_POSTGRES_DATABASE:-airflow}"
-    volumes:
-      - postgres-db-data-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DS_POSTGRES_USER:-airflow}"]
-      interval: 10s
-      retries: 5
-      start_period: 5s
-    ports:
-      - "${DS_POSTGRES_PORT:-1244}:5432"
     restart: always
 
   redis:
@@ -307,6 +289,23 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  postgres-data:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: "${DS_POSTGRES_USER:-airflow}"
+      POSTGRES_PASSWORD: "${DS_POSTGRES_PASSWORD:-airflow}"
+      POSTGRES_DB: "${DS_POSTGRES_DATABASE:-airflow}"
+    volumes:
+      - postgres-db-data-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DS_POSTGRES_USER:-airflow}"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "${DS_POSTGRES_PORT:-1244}:5432"
+    restart: always
         
   app:
     hostname: app

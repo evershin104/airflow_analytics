@@ -1,0 +1,79 @@
+#!/bin/bash
+
+PROJECT_DIR="$(dirname "$(pwd)")"
+
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "!!!Файл docker-compose.yml не найден в директории проекта!!!"
+    exit 1
+fi
+
+init_airflow() {
+    echo "Airflow initialization..."
+    docker-compose -f "$COMPOSE_FILE" up airflow-init
+    echo "Airflow initialized."
+}
+
+install_and_run_services() {
+    init_airflow
+    echo "Initialize backend services..."
+    docker-compose -f "$COMPOSE_FILE" up -d
+    echo "Services started."
+}
+
+# TODO <service_name>
+stop_containers() {
+    echo "Stop services..."
+    docker-compose -f "$COMPOSE_FILE" stop
+    echo "Services stopped."
+}
+
+# TODO <service_name>
+start_containers() {
+    echo "Start services..."
+    docker-compose -f "$COMPOSE_FILE" start
+    echo "Services started."
+}
+
+down_containers() {
+    echo "Down services..."
+    docker-compose -f "$COMPOSE_FILE" down
+    echo "Services turned off."
+}
+
+remove_containers() {
+    echo "Down services and clear volumes..."
+    docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
+    echo "Volumes cleaned."
+}
+
+
+case "$1" in
+    init)
+        init_airflow
+        ;;
+    install)
+        install_and_run_services
+        ;;
+    stop)
+        stop_containers
+        ;;
+    start)
+        start_containers
+        ;;
+    down)
+        down_containers
+        ;;
+    clear)
+        remove_containers
+        ;;
+    *)
+        echo "Использование: $0 {init | install | stop | start | down | clear}"
+        echo "  init    - Инициализация и запуск Airflow сервисов"
+        echo "  install - Инициализация и запуск всех сервисов"
+        echo "  stop    - Остановка всех сервисов"
+        усрщ "  start   - Запуск всех сервисов после остановки"
+        echo "  down    - Остановка всех сервисов"
+        echo "  clear   - Остановка и очистка БД сервисов"
+        exit 1
+esac
