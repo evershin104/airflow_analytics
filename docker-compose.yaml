@@ -53,6 +53,13 @@ x-airflow-common:
   # build: .
   environment:
     &airflow-common-env
+    # Datastore env variables
+    AIRFLOW_DS_HOST: "${DS_POSTGRES_HOST:-postgres-data}"
+    AIRFLOW_DS_PORT: "${DS_POSTGRES_PORT:-5432}"
+    AIRFLOW_DS_USER: "${DS_POSTGRES_USER:-airflow}"
+    AIRFLOW_DS_PASSWORD: "${DS_POSTGRES_PASSWORD:-airflow}"
+    AIRFLOW_DS_DB: "${DS_POSTGRES_DATABASE:-airflow}"
+
     CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: 'true'
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${SYS_POSTGRES_USER:-airflow}:${SYS_POSTGRES_PASSWORD:-airflow}@postgres-sys/${SYS_POSTGRES_DATABASE:-airflow}

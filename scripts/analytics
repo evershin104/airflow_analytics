@@ -1,12 +1,13 @@
 #!/bin/bash
-
 PROJECT_DIR="$(dirname "$(pwd)")"
-
+# sed -i -e 's/\r$//' analytics
+# If 'No such file or directory'
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yaml"
 if [ ! -f "$COMPOSE_FILE" ]; then
-    echo "!!!Файл docker-compose.yml не найден в директории проекта!!!"
+    echo "!!! docker-compose.yml not found in $PROJECT_DIR/ !!!"
     exit 1
 fi
+
 
 init_airflow() {
     echo "Airflow initialization..."
@@ -21,17 +22,25 @@ install_and_run_services() {
     echo "Services started."
 }
 
-# TODO <service_name>
 stop_containers() {
-    echo "Stop services..."
-    docker-compose -f "$COMPOSE_FILE" stop
+    if [ $# -eq 0 ]; then
+        echo "Stop all services..."
+        docker-compose -f "$COMPOSE_FILE" stop
+    else
+        echo "Stop specific services: $@"
+        docker-compose -f "$COMPOSE_FILE" stop "$@"
+    fi
     echo "Services stopped."
 }
 
-# TODO <service_name>
 start_containers() {
-    echo "Start services..."
-    docker-compose -f "$COMPOSE_FILE" start
+    if [ $# -eq 0 ]; then
+        echo "Start all services..."
+        docker-compose -f "$COMPOSE_FILE" start
+    else
+        echo "Start specific services: $@"
+        docker-compose -f "$COMPOSE_FILE" start "$@"
+    fi
     echo "Services started."
 }
 
@@ -43,10 +52,19 @@ down_containers() {
 
 remove_containers() {
     echo "Down services and clear volumes..."
-    docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
+    docker-compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
     echo "Volumes cleaned."
 }
 
+build_and_run_services() {
+    if [ $# -eq 0 ]; then
+        echo "Build and start all services..."
+        docker-compose -f "$COMPOSE_FILE" up --build --force-recreate -d
+    else
+        echo "Build and start specific services: $@"
+        docker-compose -f "$COMPOSE_FILE" up --build --force-recreate -d "$@"
+    fi
+}
 
 case "$1" in
     init)
@@ -56,10 +74,12 @@ case "$1" in
         install_and_run_services
         ;;
     stop)
-        stop_containers
+        shift
+        stop_containers "$@"
         ;;
     start)
-        start_containers
+        shift
+        start_containers "$@"
         ;;
     down)
         down_containers
@@ -67,13 +87,18 @@ case "$1" in
     clear)
         remove_containers
         ;;
+    build)
+        shift
+        build_and_run_services "$@"
+        ;;
     *)
-        echo "Использование: $0 {init | install | stop | start | down | clear}"
-        echo "  init    - Инициализация и запуск Airflow сервисов"
-        echo "  install - Инициализация и запуск всех сервисов"
-        echo "  stop    - Остановка всех сервисов"
-        усрщ "  start   - Запуск всех сервисов после остановки"
-        echo "  down    - Остановка всех сервисов"
-        echo "  clear   - Остановка и очистка БД сервисов"
+        echo "./analytics $0 {init | install | stop <> | start <> | down | clear | build <>}"
+        echo "  init                    - Инициализация и запуск Airflow сервисов"
+        echo "  install                 - Инициализация и запуск всех сервисов"
+        echo "  stop <s1> <s2> ...      - Остановка всех сервисов или указанных сервисов"
+        echo "  start <s1> <s2> ...     - Запуск всех сервисов или указанных сервисов после остановки"
+        echo "  down                    - Остановка всех сервисов"
+        echo "  clear                   - Остановка и очистка БД сервисов"
+        echo "  build <s1> <s2> ...     - Пересборка образов всех сервисов или указанных сервисов и запуск"
         exit 1
 esac

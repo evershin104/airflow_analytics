@@ -14,6 +14,8 @@ psycopg2 = "^2.9.9"
 litestar = "^2.8.2"
 uvicorn = "^0.29.0"
 psycopg2-binary = "^2.9.9"
+loadenv = "^0.1.1"
+python-dotenv = "^1.0.1"
 
 
 [build-system]

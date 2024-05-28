@@ -7,6 +7,9 @@ import os
 from alembic import context
 
 import importlib
+from dotenv import load_dotenv
+
+load_dotenv()
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -24,11 +27,11 @@ if config.config_file_name is not None:
 from app.models.exchange_rates_rub import RubRatesHistory
 target_metadata = [RubRatesHistory.metadata]
 
-config.set_main_option("HOST", os.environ["APP_POSTGRES_HOST"])
-config.set_main_option("USER", os.environ["APP_POSTGRES_USER"])
-config.set_main_option("PASSWORD", os.environ["APP_POSTGRES_PASSWORD"])
-config.set_main_option("PORT", os.environ["APP_POSTGRES_PORT"])
-config.set_main_option("DB", os.environ["APP_POSTGRES_DATABASE"])
+config.set_main_option("HOST", os.getenv("APP_POSTGRES_HOST"))
+config.set_main_option("USER", os.getenv("APP_POSTGRES_USER"))
+config.set_main_option("PASSWORD", os.getenv("APP_POSTGRES_PASSWORD"))
+config.set_main_option("PORT", os.getenv("APP_POSTGRES_PORT"))
+config.set_main_option("DB", os.getenv("APP_POSTGRES_DATABASE"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
